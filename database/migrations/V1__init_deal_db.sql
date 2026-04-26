@@ -8,13 +8,13 @@ CREATE TABLE deals (
     start_date              TIMESTAMPTZ   NOT NULL,
     end_date                TIMESTAMPTZ   NOT NULL,
     pricing_mode            VARCHAR(10)   NOT NULL
-        CHECK (pricing_mode IN ('hour', 'day')),
+        CHECK (pricing_mode IN ('HOUR', 'DAY')),
     price_per_day_snapshot  DECIMAL(10,2),
     price_per_hour_snapshot DECIMAL(10,2),
     total_price             DECIMAL(10,2) NOT NULL,
     deposit_amount          DECIMAL(10,2) NOT NULL DEFAULT 0,
-    status                  VARCHAR(20)   NOT NULL DEFAULT 'new'
-        CHECK (status IN ('new', 'confirmed', 'active', 'completed', 'rejected')),
+    status                  VARCHAR(20)   NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'REJECTED', 'CANCELLED')),
     rejection_reason        TEXT,
     created_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
@@ -26,10 +26,10 @@ CREATE TABLE deals (
     CHECK (price_per_hour_snapshot IS NULL OR
         price_per_hour_snapshot >= 0),
     CHECK (
-        (pricing_mode = 'day' AND price_per_day_snapshot IS NOT NULL
+        (pricing_mode = 'DAY' AND price_per_day_snapshot IS NOT NULL
         AND price_per_hour_snapshot IS NULL)
             OR
-        (pricing_mode = 'hour' AND price_per_hour_snapshot IS NOT NULL
+        (pricing_mode = 'HOUR' AND price_per_hour_snapshot IS NOT NULL
         AND price_per_day_snapshot IS NULL)
     )
 );
@@ -71,10 +71,10 @@ CREATE TABLE transactions (
     id                         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id                    UUID          NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     type                       VARCHAR(20)   NOT NULL
-        CHECK (type IN ('rental', 'deposit_hold', 'deposit_release', 'penalty')),
+        CHECK (type IN ('RENTAL', 'DEPOSIT_HOLD', 'DEPOSIT_RELEASE', 'PENALTY')),
     amount                     DECIMAL(10,2) NOT NULL CHECK (amount >= 0),
-    status                     VARCHAR(20)   NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'held', 'captured', 'refunded', 'failed', 'cancelled')),
+    status                     VARCHAR(20)   NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'HELD', 'CAPTURED', 'REFUNDED', 'FAILED', 'CANCELLED')),
     yookassa_payment_id        VARCHAR(100),
     yookassa_payment_method_id VARCHAR(100),
     gateway_response           JSONB,
@@ -101,7 +101,7 @@ CREATE TABLE deal_status_history (
     new_status    VARCHAR(20) NOT NULL,
     changed_by    UUID,
     change_source VARCHAR(20) NOT NULL
-        CHECK (change_source IN ('user', 'system', 'payment_webhook', 'moderator')),
+        CHECK (change_source IN ('USER', 'SYSTEM', 'PAYMENT_WEBHOOK', 'MODERATOR')),
     comment       TEXT,
     changed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
