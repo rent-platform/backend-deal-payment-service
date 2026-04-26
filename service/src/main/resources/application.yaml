@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: deal-payment-service
+
+  datasource:
+    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:5433}/${PG_DATABASE:deal_db}
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:12345}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+    locations: filesystem:database/migrations
+
+app:
+  user-service-url: http://localhost:8081
+  swagger:
+    gateway-url: http://localhost:8080
+    deal-payment-service-url: http://localhost:8083
+
+server:
+  port: 8083
