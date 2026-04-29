@@ -5,24 +5,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CancelDealRequest;
 import ru.rentplatform.dealpaymentservice.api.dto.request.RejectDealRequest;
-import ru.rentplatform.dealpaymentservice.api.dto.response.DealCommentResponse;
 import ru.rentplatform.dealpaymentservice.api.dto.response.DealResponse;
-import ru.rentplatform.dealpaymentservice.api.dto.response.DealStatusHistoryResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.InvalidDealStatusException;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.Deal;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealChangeSource;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatus;
-import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatusHistory;
-import ru.rentplatform.dealpaymentservice.core.dao.repository.DealCommentRepository;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealStatusHistoryRepository;
 import ru.rentplatform.dealpaymentservice.core.mapper.DealMapper;
 import ru.rentplatform.dealpaymentservice.core.service.DealStatusService;
+import ru.rentplatform.dealpaymentservice.core.util.DealResponseBuilder;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,9 +26,9 @@ import java.util.UUID;
 public class DealStatusServiceImpl implements DealStatusService {
 
     private final DealRepository dealRepository;
-    private final DealCommentRepository dealCommentRepository;
     private final DealStatusHistoryRepository dealStatusHistoryRepository;
     private final DealMapper dealMapper;
+    private final DealResponseBuilder dealResponseBuilder;
 
     @Override
     @Transactional
@@ -54,7 +50,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 oldStatus,
                 DealStatus.CONFIRMED,
@@ -63,7 +59,7 @@ public class DealStatusServiceImpl implements DealStatusService {
                 "Deal confirmed"
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     @Override
@@ -87,7 +83,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 oldStatus,
                 DealStatus.REJECTED,
@@ -96,7 +92,7 @@ public class DealStatusServiceImpl implements DealStatusService {
                 request.getReason()
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     @Override
@@ -119,7 +115,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 oldStatus,
                 DealStatus.CANCELLED,
@@ -128,7 +124,7 @@ public class DealStatusServiceImpl implements DealStatusService {
                 request.getReason()
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     @Override
@@ -151,7 +147,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 oldStatus,
                 DealStatus.ACTIVE,
@@ -160,7 +156,7 @@ public class DealStatusServiceImpl implements DealStatusService {
                 "Deal started"
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     @Override
@@ -183,7 +179,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 oldStatus,
                 DealStatus.COMPLETED,
@@ -192,49 +188,11 @@ public class DealStatusServiceImpl implements DealStatusService {
                 "Deal completed"
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     private Deal getDeal(UUID dealId) {
         return dealRepository.findById(dealId)
                 .orElseThrow(() -> new DealNotFoundException("Deal not found"));
-    }
-
-    private void saveStatusHistory(Deal deal,
-                                   DealStatus oldStatus,
-                                   DealStatus newStatus,
-                                   UUID changedBy,
-                                   DealChangeSource changeSource,
-                                   String comment) {
-        DealStatusHistory history = DealStatusHistory.builder()
-                .id(UUID.randomUUID())
-                .deal(deal)
-                .oldStatus(oldStatus)
-                .newStatus(newStatus)
-                .changedBy(changedBy)
-                .changeSource(changeSource)
-                .comment(comment)
-                .changedAt(OffsetDateTime.now())
-                .build();
-
-        dealStatusHistoryRepository.save(history);
-    }
-
-    private DealResponse buildDealResponse(Deal deal) {
-        List<DealCommentResponse> comments = dealCommentRepository.findAllByDeal_IdOrderByCreatedAtAsc(deal.getId())
-                .stream()
-                .map(dealMapper::toDealCommentResponse)
-                .toList();
-
-        List<DealStatusHistoryResponse> history = dealStatusHistoryRepository.findAllByDeal_IdOrderByChangedAtAsc(deal.getId())
-                .stream()
-                .map(dealMapper::toDealStatusHistoryResponse)
-                .toList();
-
-        DealResponse response = dealMapper.toDealResponse(deal);
-        response.setComments(comments);
-        response.setHistory(history);
-
-        return response;
     }
 }

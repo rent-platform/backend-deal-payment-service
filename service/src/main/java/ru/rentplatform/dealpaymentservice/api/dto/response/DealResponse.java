@@ -44,7 +44,5 @@ public class DealResponse {
 
     private OffsetDateTime updatedAt;
 
-    private List<DealCommentResponse> comments;
-
     private List<DealStatusHistoryResponse> history;
 }

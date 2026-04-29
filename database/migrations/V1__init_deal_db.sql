@@ -52,20 +52,33 @@ CREATE INDEX deals_start_date_idx
 CREATE INDEX deals_end_date_idx
     ON deals(end_date);
 
-CREATE TABLE deal_comments (
-    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id    UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
-    author_id  UUID        NOT NULL,
-    text       TEXT        NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE deal_reviews (
+    id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    deal_id          UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+    item_id          UUID        NOT NULL,
+    reviewer_id      UUID        NOT NULL,
+    reviewed_user_id UUID        NOT NULL,
+    review_type      VARCHAR(30) NOT NULL
+        CHECK (review_type IN ('RENTER_TO_OWNER', 'OWNER_TO_RENTER')),
+    rating           INT         NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    text             TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (deal_id, reviewer_id)
 );
 
-CREATE INDEX deal_comments_deal_id_idx
-    ON deal_comments(deal_id);
+CREATE INDEX deal_reviews_deal_id_idx
+    ON deal_reviews(deal_id);
 
-CREATE INDEX deal_comments_author_id_idx
-    ON deal_comments(author_id);
+CREATE INDEX deal_reviews_item_id_idx
+    ON deal_reviews(item_id);
+
+CREATE INDEX deal_reviews_reviewer_id_idx
+    ON deal_reviews(reviewer_id);
+
+CREATE INDEX deal_reviews_reviewed_user_id_idx
+    ON deal_reviews(reviewed_user_id);
 
 CREATE TABLE transactions (
     id                         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -125,8 +138,8 @@ BEFORE UPDATE ON deals
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_deal_comments_updated_at
-BEFORE UPDATE ON deal_comments
+CREATE TRIGGER trg_deal_reviews_updated_at
+BEFORE UPDATE ON deal_reviews
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 

@@ -12,11 +12,10 @@ import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealTimeConflictException;
 import ru.rentplatform.dealpaymentservice.client.catalog.CatalogClient;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
-import ru.rentplatform.dealpaymentservice.core.dao.repository.DealCommentRepository;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
-import ru.rentplatform.dealpaymentservice.core.dao.repository.DealStatusHistoryRepository;
 import ru.rentplatform.dealpaymentservice.core.mapper.DealMapper;
 import ru.rentplatform.dealpaymentservice.core.service.DealService;
+import ru.rentplatform.dealpaymentservice.core.util.DealResponseBuilder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,10 +29,9 @@ import java.util.UUID;
 public class DealServiceImpl implements DealService {
 
     private final DealRepository dealRepository;
-    private final DealCommentRepository dealCommentRepository;
-    private final DealStatusHistoryRepository dealStatusHistoryRepository;
     private final CatalogClient catalogClient;
     private final DealMapper dealMapper;
+    private final DealResponseBuilder dealResponseBuilder;
 
     @Override
     @Transactional
@@ -56,6 +54,20 @@ public class DealServiceImpl implements DealService {
             throw new IllegalArgumentException("Owner cannot rent own item");
         }
 
+        if (pricingMode == PricingMode.HOUR
+                && itemInfo.getPricePerHour() == null) {
+            throw new IllegalArgumentException(
+                    "Hourly rent is not available for this item"
+            );
+        }
+
+        if (pricingMode == PricingMode.DAY
+                && itemInfo.getPricePerDay() == null) {
+            throw new IllegalArgumentException(
+                    "Daily rent is not available for this item"
+            );
+        }
+
         checkConflicts(request.getItemId(), request.getStartDate(), request.getEndDate());
 
         BigDecimal totalPrice = calculateTotalPrice(
@@ -68,7 +80,6 @@ public class DealServiceImpl implements DealService {
         OffsetDateTime now = OffsetDateTime.now();
 
         Deal deal = Deal.builder()
-                .id(UUID.randomUUID())
                 .itemId(itemInfo.getId())
                 .renterId(renterId)
                 .ownerId(itemInfo.getOwnerId())
@@ -87,7 +98,7 @@ public class DealServiceImpl implements DealService {
 
         Deal savedDeal = dealRepository.save(deal);
 
-        saveStatusHistory(
+        dealResponseBuilder.saveStatusHistory(
                 savedDeal,
                 null,
                 DealStatus.PENDING,
@@ -96,7 +107,7 @@ public class DealServiceImpl implements DealService {
                 "Deal created"
         );
 
-        return buildDealResponse(savedDeal);
+        return dealResponseBuilder.buildDealResponse(savedDeal);
     }
 
     @Override
@@ -109,7 +120,7 @@ public class DealServiceImpl implements DealService {
             throw new DealAccessDeniedException("Access denied");
         }
 
-        return buildDealResponse(deal);
+        return dealResponseBuilder.buildDealResponse(deal);
     }
 
     @Override
@@ -206,43 +217,5 @@ public class DealServiceImpl implements DealService {
         }
 
         throw new IllegalArgumentException("Invalid pricing mode");
-    }
-
-    private void saveStatusHistory(Deal deal,
-                                   DealStatus oldStatus,
-                                   DealStatus newStatus,
-                                   UUID changedBy,
-                                   DealChangeSource changeSource,
-                                   String comment) {
-        DealStatusHistory history = DealStatusHistory.builder()
-                .id(UUID.randomUUID())
-                .deal(deal)
-                .oldStatus(oldStatus)
-                .newStatus(newStatus)
-                .changedBy(changedBy)
-                .changeSource(changeSource)
-                .comment(comment)
-                .changedAt(OffsetDateTime.now())
-                .build();
-
-        dealStatusHistoryRepository.save(history);
-    }
-
-    private DealResponse buildDealResponse(Deal deal) {
-        List<DealCommentResponse> comments = dealCommentRepository.findAllByDeal_IdOrderByCreatedAtAsc(deal.getId())
-                .stream()
-                .map(dealMapper::toDealCommentResponse)
-                .toList();
-
-        List<DealStatusHistoryResponse> history = dealStatusHistoryRepository.findAllByDeal_IdOrderByChangedAtAsc(deal.getId())
-                .stream()
-                .map(dealMapper::toDealStatusHistoryResponse)
-                .toList();
-
-        DealResponse response = dealMapper.toDealResponse(deal);
-        response.setComments(comments);
-        response.setHistory(history);
-
-        return response;
     }
 }
