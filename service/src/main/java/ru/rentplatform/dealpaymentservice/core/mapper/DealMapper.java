@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import ru.rentplatform.dealpaymentservice.api.dto.response.*;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.Deal;
+import ru.rentplatform.dealpaymentservice.core.dao.entity.DealReview;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatusHistory;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.Transaction;
 
@@ -30,4 +31,8 @@ public interface DealMapper {
     @Mapping(target = "type", expression = "java(transaction.getType().name())")
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     TransactionResponse toTransactionResponse(Transaction transaction);
+
+    @Mapping(target = "dealId", expression = "java(review.getDeal().getId())")
+    @Mapping(target = "reviewType", expression = "java(review.getReviewType().name())")
+    DealReviewResponse toDealReviewResponse(DealReview review);
 }
