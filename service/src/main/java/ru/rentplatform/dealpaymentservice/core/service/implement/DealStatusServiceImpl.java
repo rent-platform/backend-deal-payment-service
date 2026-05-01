@@ -1,6 +1,7 @@
 package ru.rentplatform.dealpaymentservice.core.service.implement;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CancelDealRequest;
@@ -13,21 +14,19 @@ import ru.rentplatform.dealpaymentservice.core.dao.entity.Deal;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealChangeSource;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatus;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
-import ru.rentplatform.dealpaymentservice.core.dao.repository.DealStatusHistoryRepository;
-import ru.rentplatform.dealpaymentservice.core.mapper.DealMapper;
 import ru.rentplatform.dealpaymentservice.core.service.DealStatusService;
 import ru.rentplatform.dealpaymentservice.core.util.DealResponseBuilder;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class DealStatusServiceImpl implements DealStatusService {
 
     private final DealRepository dealRepository;
-    private final DealStatusHistoryRepository dealStatusHistoryRepository;
-    private final DealMapper dealMapper;
     private final DealResponseBuilder dealResponseBuilder;
 
     @Override
@@ -43,15 +42,41 @@ public class DealStatusServiceImpl implements DealStatusService {
             throw new InvalidDealStatusException("Only pending deal can be confirmed");
         }
 
+        // Находим все конфликтующие PENDING-сделки на те же даты
+        List<Deal> conflictingDeals = dealRepository.findConflictingPendingDeals(
+                deal.getItemId(),
+                deal.getStartDate(),
+                deal.getEndDate(),
+                deal.getId()
+        );
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // Отклоняем конфликтующие сделки
+        for (Deal conflicting : conflictingDeals) {
+            DealStatus oldConflictingStatus = conflicting.getStatus();
+
+            conflicting.setStatus(DealStatus.REJECTED);
+            conflicting.setRejectionReason("Another deal confirmed for these dates");
+            conflicting.setUpdatedAt(now);
+
+            dealResponseBuilder.saveStatusHistory(
+                    conflicting,
+                    oldConflictingStatus,
+                    DealStatus.REJECTED,
+                    null,
+                    DealChangeSource.SYSTEM,
+                    "Rejected due to confirmation of deal " + dealId
+            );
+        }
+
+        // Подтверждаем текущую сделку
         DealStatus oldStatus = deal.getStatus();
-
         deal.setStatus(DealStatus.CONFIRMED);
-        deal.setUpdatedAt(OffsetDateTime.now());
-
-        Deal savedDeal = dealRepository.save(deal);
+        deal.setUpdatedAt(now);
 
         dealResponseBuilder.saveStatusHistory(
-                savedDeal,
+                deal,
                 oldStatus,
                 DealStatus.CONFIRMED,
                 ownerId,
@@ -59,7 +84,10 @@ public class DealStatusServiceImpl implements DealStatusService {
                 "Deal confirmed"
         );
 
-        return dealResponseBuilder.buildDealResponse(savedDeal);
+        log.info("Deal {} confirmed by owner {}. Rejected {} conflicting deals.",
+                dealId, ownerId, conflictingDeals.size());
+
+        return dealResponseBuilder.buildDealResponse(deal);
     }
 
     @Override

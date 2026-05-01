@@ -11,6 +11,7 @@ import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedExceptio
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealTimeConflictException;
 import ru.rentplatform.dealpaymentservice.client.catalog.CatalogClient;
+import ru.rentplatform.dealpaymentservice.client.dto.AvailabilitySlotDto;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
 import ru.rentplatform.dealpaymentservice.core.mapper.DealMapper;
@@ -20,9 +21,12 @@ import ru.rentplatform.dealpaymentservice.core.util.DealResponseBuilder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +69,28 @@ public class DealServiceImpl implements DealService {
                 && itemInfo.getPricePerDay() == null) {
             throw new IllegalArgumentException(
                     "Daily rent is not available for this item"
+            );
+        }
+
+        checkAvailabilityCalendar(
+                request.getItemId(),
+                request.getStartDate(),
+                request.getEndDate(),
+                pricingMode
+        );
+
+        boolean alreadyExists = dealRepository.existsByRenterAndItemAndDateRange(
+                request.getItemId(),
+                renterId,
+                request.getStartDate(),
+                request.getEndDate(),
+                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.ACTIVE)
+        );
+
+        if (alreadyExists) {
+            throw new IllegalArgumentException(
+                    "You already have an active deal for this item in the selected period." +
+                            " Cancel or wait for rejection before creating a new one."
             );
         }
 
@@ -170,7 +196,7 @@ public class DealServiceImpl implements DealService {
                 itemId,
                 startDate,
                 endDate,
-                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.ACTIVE)
+                List.of(DealStatus.CONFIRMED, DealStatus.ACTIVE)
         );
 
         if (hasConflict) {
@@ -217,5 +243,34 @@ public class DealServiceImpl implements DealService {
         }
 
         throw new IllegalArgumentException("Invalid pricing mode");
+    }
+
+    private void checkAvailabilityCalendar(UUID itemId,
+                                           OffsetDateTime startDate,
+                                           OffsetDateTime endDate,
+                                           PricingMode pricingMode) {
+        LocalDate start = startDate.toLocalDate();
+        LocalDate end = endDate.toLocalDate();
+
+        LocalDate checkEnd = pricingMode == PricingMode.HOUR
+                ? end
+                : (endDate.toLocalTime().equals(java.time.LocalTime.MIDNIGHT) ? end.minusDays(1) : end);
+
+        List<AvailabilitySlotDto> slots = catalogClient.getAvailability(itemId, start, end);
+
+        Set<LocalDate> availableDates = slots.stream()
+                .filter(AvailabilitySlotDto::isAvailable)
+                .map(AvailabilitySlotDto::availableDate)
+                .collect(Collectors.toSet());
+
+        LocalDate current = start;
+        while (!current.isAfter(checkEnd)) {
+            if (!availableDates.contains(current)) {
+                throw new IllegalArgumentException(
+                        String.format("Item is not available on %s. Please choose another date.", current)
+                );
+            }
+            current = current.plusDays(1);
+        }
     }
 }
