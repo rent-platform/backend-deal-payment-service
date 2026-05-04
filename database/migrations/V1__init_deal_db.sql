@@ -14,7 +14,7 @@ CREATE TABLE deals (
     total_price             DECIMAL(10,2) NOT NULL,
     deposit_amount          DECIMAL(10,2) NOT NULL DEFAULT 0,
     status                  VARCHAR(20)   NOT NULL DEFAULT 'PENDING'
-        CHECK (status IN ('PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'REJECTED', 'CANCELLED')),
+        CHECK (status IN ('PENDING', 'CONFIRMED', 'PAYMENT_PENDING', 'ACTIVE', 'COMPLETED', 'REJECTED', 'CANCELLED')),
     rejection_reason        TEXT,
     created_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
@@ -124,6 +124,18 @@ CREATE INDEX deal_status_history_deal_id_idx
 
 CREATE INDEX deal_status_history_changed_at_idx
     ON deal_status_history(changed_at);
+
+CREATE TABLE deal_confirmations (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    deal_id      UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+    user_id      UUID        NOT NULL,
+    action       VARCHAR(20) NOT NULL CHECK (action IN ('START', 'COMPLETE')),
+    confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (deal_id, user_id, action)
+);
+
+CREATE INDEX deal_confirmations_deal_id_idx ON deal_confirmations(deal_id);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

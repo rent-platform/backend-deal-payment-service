@@ -11,7 +11,7 @@ import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedExceptio
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealTimeConflictException;
 import ru.rentplatform.dealpaymentservice.client.catalog.CatalogClient;
-import ru.rentplatform.dealpaymentservice.client.dto.AvailabilitySlotDto;
+import ru.rentplatform.dealpaymentservice.client.catalog.dto.AvailabilitySlotDto;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
 import ru.rentplatform.dealpaymentservice.core.mapper.DealMapper;
@@ -84,7 +84,7 @@ public class DealServiceImpl implements DealService {
                 renterId,
                 request.getStartDate(),
                 request.getEndDate(),
-                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.ACTIVE)
+                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.ACTIVE)
         );
 
         if (alreadyExists) {
@@ -196,7 +196,7 @@ public class DealServiceImpl implements DealService {
                 itemId,
                 startDate,
                 endDate,
-                List.of(DealStatus.CONFIRMED, DealStatus.ACTIVE)
+                List.of(DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.ACTIVE)
         );
 
         if (hasConflict) {

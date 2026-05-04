@@ -5,7 +5,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.rentplatform.dealpaymentservice.api.dto.response.CatalogItemDealInfoResponse;
-import ru.rentplatform.dealpaymentservice.client.dto.AvailabilitySlotDto;
+import ru.rentplatform.dealpaymentservice.client.catalog.dto.AvailabilitySlotDto;
 
 import java.time.LocalDate;
 import java.util.List;

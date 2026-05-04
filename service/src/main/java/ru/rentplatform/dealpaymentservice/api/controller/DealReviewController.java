@@ -1,6 +1,8 @@
 package ru.rentplatform.dealpaymentservice.api.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,12 +21,14 @@ import static ru.rentplatform.dealpaymentservice.api.ApiPaths.DEALS;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "Отзывы", description = "Отзывы о сделках аренды")
 public class DealReviewController {
 
     private final DealReviewService dealReviewService;
 
     @PostMapping(DEALS + "/{dealId}/review")
     @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Оставить отзыв", description = "Участник сделки оставляет отзыв. Только после COMPLETED")
     public DealReviewResponse createReview(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID dealId,
@@ -36,6 +40,7 @@ public class DealReviewController {
 
     @GetMapping(DEALS + "/{dealId}/reviews")
     @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Отзывы по сделке", description = "Получить все отзывы по конкретной сделке")
     public List<DealReviewResponse> getDealReviews(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID dealId
@@ -45,6 +50,7 @@ public class DealReviewController {
     }
 
     @GetMapping("/api/reviews/users/{userId}")
+    @Operation(summary = "Отзывы о пользователе", description = "Публичный список отзывов о пользователе")
     public Page<DealReviewResponse> getUserReviews(
             @PathVariable UUID userId,
             Pageable pageable
@@ -53,6 +59,7 @@ public class DealReviewController {
     }
 
     @GetMapping("/api/reviews/items/{itemId}")
+    @Operation(summary = "Отзывы о товаре", description = "Публичный список отзывов о товаре")
     public Page<DealReviewResponse> getItemReviews(
             @PathVariable UUID itemId,
             Pageable pageable

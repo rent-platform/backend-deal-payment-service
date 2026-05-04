@@ -14,7 +14,7 @@ public interface DealStatusService {
 
     DealResponse cancelDeal(UUID currentUserId, UUID dealId, CancelDealRequest request);
 
-    DealResponse startDeal(UUID ownerId, UUID dealId);
+    DealResponse confirmStartDeal(UUID dealId, UUID userId);
 
-    DealResponse completeDeal(UUID ownerId, UUID dealId);
+    DealResponse confirmCompleteDeal(UUID dealId, UUID userId, boolean itemOk);
 }

@@ -1,4 +1,4 @@
-package ru.rentplatform.dealpaymentservice.client.dto;
+package ru.rentplatform.dealpaymentservice.client.catalog.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;

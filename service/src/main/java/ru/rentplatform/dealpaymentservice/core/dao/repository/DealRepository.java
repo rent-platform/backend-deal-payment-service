@@ -74,4 +74,14 @@ public interface DealRepository extends JpaRepository<Deal, UUID> {
             @Param("endDate") OffsetDateTime endDate,
             @Param("statuses") Collection<DealStatus> statuses
     );
+
+    @Query("""
+    SELECT d FROM Deal d
+    WHERE d.status = :status
+      AND d.endDate < :deadline
+    """)
+    List<Deal> findAllByStatusAndEndDateBefore(
+            @Param("status") DealStatus status,
+            @Param("deadline") OffsetDateTime deadline
+    );
 }

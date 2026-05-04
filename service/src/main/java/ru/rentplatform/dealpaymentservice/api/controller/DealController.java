@@ -1,6 +1,8 @@
 package ru.rentplatform.dealpaymentservice.api.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,11 +24,13 @@ import static ru.rentplatform.dealpaymentservice.api.ApiPaths.DEALS;
 @RequestMapping(DEALS)
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Сделки", description = "Создание и просмотр сделок аренды")
 public class DealController {
 
     private final DealService dealService;
 
     @PostMapping
+    @Operation(summary = "Создать сделку", description = "Арендатор создаёт заявку на аренду товара")
     public DealResponse createDeal(@AuthenticationPrincipal Jwt jwt,
                                    @Valid @RequestBody CreateDealRequest request) {
         UUID renterId = UUID.fromString(jwt.getSubject());
@@ -34,6 +38,7 @@ public class DealController {
     }
 
     @GetMapping("/{dealId}")
+    @Operation(summary = "Получить сделку по ID", description = "Доступно участникам сделки")
     public DealResponse getDealById(@AuthenticationPrincipal Jwt jwt,
                                     @PathVariable UUID dealId) {
         UUID currentUserId = UUID.fromString(jwt.getSubject());
@@ -41,6 +46,7 @@ public class DealController {
     }
 
     @GetMapping("/my/renter")
+    @Operation(summary = "Мои сделки (арендатор)", description = "Список сделок где пользователь арендатор")
     public Page<DealShortResponse> getMyRenterDeals(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) DealStatus status,
@@ -51,6 +57,7 @@ public class DealController {
     }
 
     @GetMapping("/my/owner")
+    @Operation(summary = "Мои сделки (владелец)", description = "Список сделок где пользователь владелец товара")
     public Page<DealShortResponse> getMyOwnerDeals(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) DealStatus status,

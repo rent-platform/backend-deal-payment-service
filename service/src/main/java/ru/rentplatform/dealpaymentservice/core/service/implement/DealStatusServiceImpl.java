@@ -15,6 +15,7 @@ import ru.rentplatform.dealpaymentservice.core.dao.entity.DealChangeSource;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatus;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealRepository;
 import ru.rentplatform.dealpaymentservice.core.service.DealStatusService;
+import ru.rentplatform.dealpaymentservice.core.service.PaymentService;
 import ru.rentplatform.dealpaymentservice.core.util.DealResponseBuilder;
 
 import java.time.OffsetDateTime;
@@ -28,6 +29,7 @@ public class DealStatusServiceImpl implements DealStatusService {
 
     private final DealRepository dealRepository;
     private final DealResponseBuilder dealResponseBuilder;
+    private final PaymentService paymentService;
 
     @Override
     @Transactional
@@ -42,7 +44,6 @@ public class DealStatusServiceImpl implements DealStatusService {
             throw new InvalidDealStatusException("Only pending deal can be confirmed");
         }
 
-        // Находим все конфликтующие PENDING-сделки на те же даты
         List<Deal> conflictingDeals = dealRepository.findConflictingPendingDeals(
                 deal.getItemId(),
                 deal.getStartDate(),
@@ -52,7 +53,6 @@ public class DealStatusServiceImpl implements DealStatusService {
 
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Отклоняем конфликтующие сделки
         for (Deal conflicting : conflictingDeals) {
             DealStatus oldConflictingStatus = conflicting.getStatus();
 
@@ -70,7 +70,6 @@ public class DealStatusServiceImpl implements DealStatusService {
             );
         }
 
-        // Подтверждаем текущую сделку
         DealStatus oldStatus = deal.getStatus();
         deal.setStatus(DealStatus.CONFIRMED);
         deal.setUpdatedAt(now);
@@ -132,8 +131,10 @@ public class DealStatusServiceImpl implements DealStatusService {
             throw new DealAccessDeniedException("Only deal participant can cancel deal");
         }
 
-        if (deal.getStatus() != DealStatus.PENDING && deal.getStatus() != DealStatus.CONFIRMED) {
-            throw new InvalidDealStatusException("Only pending or confirmed deal can be cancelled");
+        if (deal.getStatus() != DealStatus.PENDING &&
+                deal.getStatus() != DealStatus.CONFIRMED &&
+                    deal.getStatus() != DealStatus.PAYMENT_PENDING) {
+            throw new InvalidDealStatusException("Only pending, confirmed or payment_pending deal can be cancelled");
         }
 
         DealStatus oldStatus = deal.getStatus();
@@ -157,66 +158,14 @@ public class DealStatusServiceImpl implements DealStatusService {
 
     @Override
     @Transactional
-    public DealResponse startDeal(UUID ownerId, UUID dealId) {
-        Deal deal = getDeal(dealId);
-
-        if (!deal.getOwnerId().equals(ownerId)) {
-            throw new DealAccessDeniedException("Only owner can start deal");
-        }
-
-        if (deal.getStatus() != DealStatus.CONFIRMED) {
-            throw new InvalidDealStatusException("Only confirmed deal can be started");
-        }
-
-        DealStatus oldStatus = deal.getStatus();
-
-        deal.setStatus(DealStatus.ACTIVE);
-        deal.setUpdatedAt(OffsetDateTime.now());
-
-        Deal savedDeal = dealRepository.save(deal);
-
-        dealResponseBuilder.saveStatusHistory(
-                savedDeal,
-                oldStatus,
-                DealStatus.ACTIVE,
-                ownerId,
-                DealChangeSource.USER,
-                "Deal started"
-        );
-
-        return dealResponseBuilder.buildDealResponse(savedDeal);
+    public DealResponse confirmStartDeal(UUID dealId, UUID userId) {
+        return paymentService.confirmStartDeal(dealId, userId);
     }
 
     @Override
     @Transactional
-    public DealResponse completeDeal(UUID ownerId, UUID dealId) {
-        Deal deal = getDeal(dealId);
-
-        if (!deal.getOwnerId().equals(ownerId)) {
-            throw new DealAccessDeniedException("Only owner can complete deal");
-        }
-
-        if (deal.getStatus() != DealStatus.ACTIVE) {
-            throw new InvalidDealStatusException("Only active deal can be completed");
-        }
-
-        DealStatus oldStatus = deal.getStatus();
-
-        deal.setStatus(DealStatus.COMPLETED);
-        deal.setUpdatedAt(OffsetDateTime.now());
-
-        Deal savedDeal = dealRepository.save(deal);
-
-        dealResponseBuilder.saveStatusHistory(
-                savedDeal,
-                oldStatus,
-                DealStatus.COMPLETED,
-                ownerId,
-                DealChangeSource.USER,
-                "Deal completed"
-        );
-
-        return dealResponseBuilder.buildDealResponse(savedDeal);
+    public DealResponse confirmCompleteDeal(UUID dealId, UUID userId, boolean itemOk) {
+        return paymentService.confirmCompleteDeal(dealId, userId, itemOk);
     }
 
     private Deal getDeal(UUID dealId) {
