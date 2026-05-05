@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CreateDealReviewRequest;
 import ru.rentplatform.dealpaymentservice.api.dto.response.DealReviewResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.ItemRatingSummaryResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.UserRatingSummaryResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
@@ -107,6 +109,46 @@ public class DealReviewServiceImpl implements DealReviewService {
                         pageable
                 )
                 .map(dealMapper::toDealReviewResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserRatingSummaryResponse getUserRatingSummary(UUID userId) {
+        Double ownerRating = dealReviewRepository.getOwnerRatingByUserId(userId);
+        long ownerReviews = dealReviewRepository.countOwnerReviewsByUserId(userId);
+
+        Double renterRating = dealReviewRepository.getRenterRatingByUserId(userId);
+        long renterReviews = dealReviewRepository.countRenterReviewsByUserId(userId);
+
+        double ownerR = ownerRating != null ? Math.round(ownerRating * 10.0) / 10.0 : 0.0;
+        double renterR = renterRating != null ? Math.round(renterRating * 10.0) / 10.0 : 0.0;
+
+        double overall = 0.0;
+        int count = 0;
+        if (ownerRating != null) { overall += ownerRating; count++; }
+        if (renterRating != null) { overall += renterRating; count++; }
+        overall = count > 0 ? Math.round((overall / count) * 10.0) / 10.0 : 0.0;
+
+        return UserRatingSummaryResponse.builder()
+                .overallRating(overall)
+                .totalReviews(ownerReviews + renterReviews)
+                .ownerRating(ownerR)
+                .ownerReviews(ownerReviews)
+                .renterRating(renterR)
+                .renterReviews(renterReviews)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ItemRatingSummaryResponse getItemRatingSummary(UUID itemId) {
+        Double avg = dealReviewRepository.getAverageRatingByItemId(itemId);
+        long count = dealReviewRepository.countByItemId(itemId);
+
+        return ItemRatingSummaryResponse.builder()
+                .averageRating(avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0)
+                .totalReviews(count)
+                .build();
     }
 
     private String normalizeText(String text) {

@@ -12,6 +12,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CreateDealReviewRequest;
 import ru.rentplatform.dealpaymentservice.api.dto.response.DealReviewResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.ItemRatingSummaryResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.UserRatingSummaryResponse;
 import ru.rentplatform.dealpaymentservice.core.service.DealReviewService;
 
 import java.util.List;
@@ -65,5 +67,19 @@ public class DealReviewController {
             Pageable pageable
     ) {
         return dealReviewService.getItemReviews(itemId, pageable);
+    }
+
+    @GetMapping("/api/reviews/users/{userId}/summary")
+    @Operation(summary = "Рейтинг пользователя",
+            description = "Общий рейтинг, рейтинг как арендодатель и как арендатор")
+    public UserRatingSummaryResponse getUserRatingSummary(@PathVariable UUID userId) {
+        return dealReviewService.getUserRatingSummary(userId);
+    }
+
+    @GetMapping("/api/reviews/items/{itemId}/summary")
+    @Operation(summary = "Рейтинг товара",
+            description = "Средний рейтинг и количество отзывов о товаре")
+    public ItemRatingSummaryResponse getItemRatingSummary(@PathVariable UUID itemId) {
+        return dealReviewService.getItemRatingSummary(itemId);
     }
 }

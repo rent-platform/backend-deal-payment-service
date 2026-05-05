@@ -4,6 +4,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CreateDealReviewRequest;
 import ru.rentplatform.dealpaymentservice.api.dto.response.DealReviewResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.ItemRatingSummaryResponse;
+import ru.rentplatform.dealpaymentservice.api.dto.response.UserRatingSummaryResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,4 +19,8 @@ public interface DealReviewService {
     Page<DealReviewResponse> getUserReviews(UUID userId, Pageable pageable);
 
     Page<DealReviewResponse> getItemReviews(UUID itemId, Pageable pageable);
+
+    UserRatingSummaryResponse getUserRatingSummary(UUID userId);
+
+    ItemRatingSummaryResponse getItemRatingSummary(UUID itemId);
 }
