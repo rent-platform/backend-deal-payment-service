@@ -56,6 +56,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @ExceptionHandler(org.springframework.security.authorization.AuthorizationDeniedException.class)
+    public ResponseEntity<MessageResponse> handleAuthorizationDenied(
+            org.springframework.security.authorization.AuthorizationDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new MessageResponse("Access denied: insufficient permissions"));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<MessageResponse> handleConstraintViolation(ConstraintViolationException ex) {
         return ResponseEntity.badRequest()

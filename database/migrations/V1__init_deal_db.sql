@@ -135,7 +135,31 @@ CREATE TABLE deal_confirmations (
     UNIQUE (deal_id, user_id, action)
 );
 
-CREATE INDEX deal_confirmations_deal_id_idx ON deal_confirmations(deal_id);
+CREATE INDEX deal_confirmations_deal_id_idx
+    ON deal_confirmations(deal_id);
+
+CREATE TABLE complaints (
+    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    author_id     UUID         NOT NULL,
+    target_type   VARCHAR(20)  NOT NULL CHECK (target_type IN ('USER', 'ITEM')),
+    target_id     UUID         NOT NULL,
+    reason        TEXT         NOT NULL,
+    status        VARCHAR(20)  NOT NULL DEFAULT 'OPEN'
+        CHECK (status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'DISMISSED')),
+    handled_by    UUID,
+    resolution    TEXT,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX complaints_status_idx
+    ON complaints(status);
+
+CREATE INDEX complaints_author_id_idx
+    ON complaints(author_id);
+
+CREATE INDEX complaints_target_idx
+    ON complaints(target_type, target_id);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
