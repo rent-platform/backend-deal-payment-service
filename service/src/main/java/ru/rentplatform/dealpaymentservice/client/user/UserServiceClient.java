@@ -24,7 +24,6 @@ public class UserServiceClient {
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception e) {
-            // ignore
         }
     }
 }
