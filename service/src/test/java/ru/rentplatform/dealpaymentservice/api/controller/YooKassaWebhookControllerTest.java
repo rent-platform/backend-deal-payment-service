@@ -19,13 +19,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class YooKassaWebhookControllerTest {
 
-    @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
     @MockitoBean
     private PaymentService paymentService;
 
     @Test
     void shouldHandlePaymentSucceeded() throws Exception {
+
         mockMvc.perform(post("/api/webhooks/yookassa")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -44,6 +46,7 @@ class YooKassaWebhookControllerTest {
 
     @Test
     void shouldIgnoreOtherEvents() throws Exception {
+
         mockMvc.perform(post("/api/webhooks/yookassa")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -62,6 +65,7 @@ class YooKassaWebhookControllerTest {
 
     @Test
     void shouldReturnOk_whenNoObject() throws Exception {
+
         mockMvc.perform(post("/api/webhooks/yookassa")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

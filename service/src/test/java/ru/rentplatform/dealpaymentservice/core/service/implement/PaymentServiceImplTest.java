@@ -31,24 +31,39 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceImplTest {
 
-    @Mock private DealRepository dealRepository;
-    @Mock private TransactionRepository transactionRepository;
-    @Mock private DealConfirmationRepository dealConfirmationRepository;
-    @Mock private YooKassaProperties properties;
-    @Mock private DealResponseBuilder dealResponseBuilder;
+    @Mock
+    private DealRepository dealRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
+
+    @Mock
+    private DealConfirmationRepository dealConfirmationRepository;
+
+    @Mock
+    private YooKassaProperties properties;
+
+    @Mock
+    private DealResponseBuilder dealResponseBuilder;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
 
     private UUID dealId;
+
     private UUID ownerId;
+
     private UUID renterId;
+
     private Deal deal;
 
     @BeforeEach
     void setUp() {
+
         dealId = UUID.randomUUID();
+
         ownerId = UUID.randomUUID();
+
         renterId = UUID.randomUUID();
 
         deal = Deal.builder()
@@ -73,6 +88,7 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_shouldCreateMockPayment_whenMockEnabled() {
+
         when(dealRepository.findById(dealId)).thenReturn(Optional.of(deal));
         when(properties.isMockEnabled()).thenReturn(true);
 
@@ -86,6 +102,7 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_shouldThrow_whenNotOwner() {
+
         when(dealRepository.findById(dealId)).thenReturn(Optional.of(deal));
 
         assertThrows(DealAccessDeniedException.class, () ->
@@ -94,6 +111,7 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_shouldThrow_whenNotConfirmed() {
+
         deal.setStatus(DealStatus.PENDING);
         when(dealRepository.findById(dealId)).thenReturn(Optional.of(deal));
 
@@ -103,6 +121,7 @@ class PaymentServiceImplTest {
 
     @Test
     void handlePaymentSuccess_shouldUpdateStatus_whenPaymentPending() {
+
         String paymentId = "payment_123";
         deal.setStatus(DealStatus.PAYMENT_PENDING);
 
@@ -123,6 +142,7 @@ class PaymentServiceImplTest {
 
     @Test
     void handlePaymentSuccess_shouldThrow_whenTransactionNotFound() {
+
         when(transactionRepository.findAll()).thenReturn(List.of());
 
         assertThrows(DealNotFoundException.class, () ->
@@ -131,6 +151,7 @@ class PaymentServiceImplTest {
 
     @Test
     void confirmStartDeal_shouldStart_whenBothConfirm() {
+
         deal.setStatus(DealStatus.PAYMENT_PENDING);
 
         DealConfirmation confirmation = DealConfirmation.builder()
@@ -151,6 +172,7 @@ class PaymentServiceImplTest {
 
     @Test
     void confirmStartDeal_shouldThrow_whenNotParticipant() {
+
         when(dealRepository.findById(dealId)).thenReturn(Optional.of(deal));
 
         assertThrows(DealAccessDeniedException.class, () ->
@@ -159,6 +181,7 @@ class PaymentServiceImplTest {
 
     @Test
     void confirmCompleteDeal_shouldComplete_whenBothConfirm_itemOk() {
+
         deal.setStatus(DealStatus.ACTIVE);
 
         Transaction rentalTx = Transaction.builder()
