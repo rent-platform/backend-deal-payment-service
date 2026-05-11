@@ -83,6 +83,8 @@ public class DealStatusServiceImpl implements DealStatusService {
                 "Deal confirmed"
         );
 
+        paymentService.createPayment(dealId, ownerId);
+
         log.info("Deal {} confirmed by owner {}. Rejected {} conflicting deals.",
                 dealId, ownerId, conflictingDeals.size());
 
