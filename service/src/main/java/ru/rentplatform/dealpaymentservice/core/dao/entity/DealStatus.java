@@ -4,6 +4,7 @@ public enum DealStatus {
     PENDING,
     CONFIRMED,
     PAYMENT_PENDING,
+    PAID,
     ACTIVE,
     COMPLETED,
     REJECTED,

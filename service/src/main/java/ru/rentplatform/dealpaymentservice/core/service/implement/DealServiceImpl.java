@@ -84,7 +84,7 @@ public class DealServiceImpl implements DealService {
                 renterId,
                 request.getStartDate(),
                 request.getEndDate(),
-                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.ACTIVE)
+                List.of(DealStatus.PENDING, DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.PAID, DealStatus.ACTIVE)
         );
 
         if (alreadyExists) {
@@ -196,7 +196,7 @@ public class DealServiceImpl implements DealService {
                 itemId,
                 startDate,
                 endDate,
-                List.of(DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.ACTIVE)
+                List.of(DealStatus.CONFIRMED, DealStatus.PAYMENT_PENDING, DealStatus.PAID, DealStatus.ACTIVE)
         );
 
         if (hasConflict) {

@@ -189,7 +189,16 @@ public class PaymentServiceImpl implements PaymentService {
             t.setUpdatedAt(OffsetDateTime.now());
         });
 
-        log.info("Payment {} held for deal {}", yookassaPaymentId, deal.getId());
+        DealStatus oldStatus = deal.getStatus();
+        deal.setStatus(DealStatus.PAID);
+        deal.setUpdatedAt(OffsetDateTime.now());
+
+        dealResponseBuilder.saveStatusHistory(
+                deal, oldStatus, DealStatus.PAID, null,
+                DealChangeSource.PAYMENT_WEBHOOK, "Payment received"
+        );
+
+        log.info("Payment {} received for deal {}. Status changed to PAID", yookassaPaymentId, deal.getId());
         return dealResponseBuilder.buildDealResponse(deal);
     }
 
@@ -203,9 +212,9 @@ public class PaymentServiceImpl implements PaymentService {
             throw new DealAccessDeniedException("Only deal participants can confirm start");
         }
 
-        if (deal.getStatus() != DealStatus.PAYMENT_PENDING) {
+        if (deal.getStatus() != DealStatus.PAID) {
             throw new InvalidDealStatusException(
-                    String.format("Cannot start deal with status '%s'", deal.getStatus())
+                    String.format("Cannot start deal with status '%s'. Expected PAID", deal.getStatus())
             );
         }
 
@@ -507,6 +516,75 @@ public class PaymentServiceImpl implements PaymentService {
         dealResponseBuilder.saveStatusHistory(
                 deal, oldStatus, DealStatus.CANCELLED, userId,
                 DealChangeSource.USER, reason + " | Used " + usedDays + " of " + totalDays + " days"
+        );
+
+        return dealResponseBuilder.buildDealResponse(deal);
+    }
+
+    @Override
+    @Transactional
+    public DealResponse cancelDealWithFullRefund(UUID dealId, UUID userId, String reason) {
+        Deal deal = dealRepository.findById(dealId)
+                .orElseThrow(() -> new DealNotFoundException("Deal not found"));
+
+        if (!deal.getOwnerId().equals(userId) && !deal.getRenterId().equals(userId)) {
+            throw new DealAccessDeniedException("Only deal participants can cancel");
+        }
+
+        if (deal.getStatus() != DealStatus.PAID) {
+            throw new InvalidDealStatusException("Only paid deal can be fully refunded");
+        }
+
+        List<Transaction> transactions = transactionRepository.findAllByDeal_Id(dealId);
+        Transaction rentalTransaction = transactions.stream()
+                .filter(t -> t.getType() == TransactionType.RENTAL)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Rental transaction not found"));
+
+        if (properties.isMockEnabled()) {
+            rentalTransaction.setStatus(TransactionStatus.REFUNDED);
+            rentalTransaction.setUpdatedAt(OffsetDateTime.now());
+
+            transactions.stream()
+                    .filter(t -> t.getType() == TransactionType.DEPOSIT_HOLD)
+                    .forEach(t -> {
+                        t.setStatus(TransactionStatus.REFUNDED);
+                        t.setUpdatedAt(OffsetDateTime.now());
+                    });
+
+            log.info("MOCK: Deal {} fully refunded", dealId);
+        } else {
+            // Полный возврат через ЮKassa
+            YooKassaRefundRequest refundRequest = YooKassaRefundRequest.builder()
+                    .paymentId(rentalTransaction.getYookassaPaymentId())
+                    .amount(YooKassaRefundRequest.Amount.builder()
+                            .value(deal.getTotalPrice().add(deal.getDepositAmount())
+                                    .setScale(2, RoundingMode.HALF_UP).toString())
+                            .currency("RUB")
+                            .build())
+                    .description("Full refund for deal " + dealId)
+                    .build();
+
+            yooKassaClient.createRefund(refundRequest, "full_refund_" + dealId);
+
+            rentalTransaction.setStatus(TransactionStatus.REFUNDED);
+            rentalTransaction.setUpdatedAt(OffsetDateTime.now());
+
+            transactions.stream()
+                    .filter(t -> t.getType() == TransactionType.DEPOSIT_HOLD)
+                    .forEach(t -> {
+                        t.setStatus(TransactionStatus.REFUNDED);
+                        t.setUpdatedAt(OffsetDateTime.now());
+                    });
+        }
+
+        DealStatus oldStatus = deal.getStatus();
+        deal.setStatus(DealStatus.CANCELLED);
+        deal.setUpdatedAt(OffsetDateTime.now());
+
+        dealResponseBuilder.saveStatusHistory(
+                deal, oldStatus, DealStatus.CANCELLED, userId,
+                DealChangeSource.USER, reason + " | Full refund"
         );
 
         return dealResponseBuilder.buildDealResponse(deal);

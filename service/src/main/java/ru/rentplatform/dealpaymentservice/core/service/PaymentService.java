@@ -18,5 +18,7 @@ public interface PaymentService {
 
     DealResponse cancelDealWithRefund(UUID dealId, UUID userId, String reason);
 
+    DealResponse cancelDealWithFullRefund(UUID dealId, UUID userId, String reason);
+
     void processDealCompletion(Deal deal, boolean itemOk);
 }

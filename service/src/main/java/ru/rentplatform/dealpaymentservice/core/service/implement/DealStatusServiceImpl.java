@@ -133,10 +133,19 @@ public class DealStatusServiceImpl implements DealStatusService {
             throw new DealAccessDeniedException("Only deal participant can cancel deal");
         }
 
+        if (deal.getStatus() == DealStatus.PAID) {
+            return paymentService.cancelDealWithFullRefund(dealId, currentUserId, request.getReason());
+        }
+
+        if (deal.getStatus() == DealStatus.ACTIVE) {
+            return paymentService.cancelDealWithRefund(dealId, currentUserId, request.getReason());
+        }
+
         if (deal.getStatus() != DealStatus.PENDING &&
                 deal.getStatus() != DealStatus.CONFIRMED &&
-                    deal.getStatus() != DealStatus.PAYMENT_PENDING) {
-            throw new InvalidDealStatusException("Only pending, confirmed or payment_pending deal can be cancelled");
+                    deal.getStatus() != DealStatus.PAYMENT_PENDING &&
+                        deal.getStatus() != DealStatus.PAID) {
+            throw new InvalidDealStatusException("Only pending, confirmed or payment_pending or paid deal can be cancelled");
         }
 
         DealStatus oldStatus = deal.getStatus();
