@@ -10,6 +10,7 @@ import ru.rentplatform.dealpaymentservice.api.dto.response.ComplaintResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.ComplaintRepository;
+import ru.rentplatform.dealpaymentservice.core.dao.repository.DealReviewRepository;
 import ru.rentplatform.dealpaymentservice.core.service.ComplaintService;
 
 import java.time.OffsetDateTime;
@@ -21,6 +22,8 @@ import java.util.UUID;
 public class ComplaintServiceImpl implements ComplaintService {
 
     private final ComplaintRepository complaintRepository;
+
+    private final DealReviewRepository dealReviewRepository;
 
     @Override
     @Transactional
@@ -74,6 +77,11 @@ public class ComplaintServiceImpl implements ComplaintService {
         complaint.setHandledBy(moderatorId);
         complaint.setResolution(resolution);
         complaint.setUpdatedAt(OffsetDateTime.now());
+
+        if (complaint.getTargetType() == ComplaintTargetType.REVIEW
+                && "RESOLVED".equals(status)) {
+            dealReviewRepository.deleteById(complaint.getTargetId());
+        }
 
         complaintRepository.save(complaint);
 

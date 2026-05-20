@@ -23,5 +23,5 @@ public class CreateDealRequest {
     private OffsetDateTime endDate;
 
     @NotNull
-    private String pricingMode; // DAY / HOUR
+    private String pricingMode;
 }

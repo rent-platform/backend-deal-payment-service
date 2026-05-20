@@ -32,12 +32,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/reviews/users/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/items/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/users/*/summary").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/items/*/summary").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
+                        jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         return http.build();
     }
