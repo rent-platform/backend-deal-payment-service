@@ -10,6 +10,7 @@ import ru.rentplatform.dealpaymentservice.api.dto.response.*;
 import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealTimeConflictException;
+import ru.rentplatform.dealpaymentservice.client.audit.AuditClient;
 import ru.rentplatform.dealpaymentservice.client.catalog.CatalogClient;
 import ru.rentplatform.dealpaymentservice.client.catalog.dto.AvailabilitySlotDto;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
@@ -36,6 +37,7 @@ public class DealServiceImpl implements DealService {
     private final CatalogClient catalogClient;
     private final DealMapper dealMapper;
     private final DealResponseBuilder dealResponseBuilder;
+    private final AuditClient auditClient;
 
     @Override
     @Transactional
@@ -132,6 +134,9 @@ public class DealServiceImpl implements DealService {
                 DealChangeSource.USER,
                 "Deal created"
         );
+
+        auditClient.sendLog("deal-payment-service", renterId, "renter",
+                "CREATE_DEAL", "DEAL", savedDeal.getId(), null);
 
         return dealResponseBuilder.buildDealResponse(savedDeal);
     }

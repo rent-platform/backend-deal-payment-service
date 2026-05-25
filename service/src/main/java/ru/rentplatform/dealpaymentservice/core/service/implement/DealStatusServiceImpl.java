@@ -10,6 +10,7 @@ import ru.rentplatform.dealpaymentservice.api.dto.response.DealResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.DealAccessDeniedException;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
 import ru.rentplatform.dealpaymentservice.api.exception.InvalidDealStatusException;
+import ru.rentplatform.dealpaymentservice.client.audit.AuditClient;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.Deal;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealChangeSource;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.DealStatus;
@@ -30,6 +31,7 @@ public class DealStatusServiceImpl implements DealStatusService {
     private final DealRepository dealRepository;
     private final DealResponseBuilder dealResponseBuilder;
     private final PaymentService paymentService;
+    private final AuditClient auditClient;
 
     @Override
     @Transactional
@@ -88,6 +90,9 @@ public class DealStatusServiceImpl implements DealStatusService {
         log.info("Deal {} confirmed by owner {}. Rejected {} conflicting deals.",
                 dealId, ownerId, conflictingDeals.size());
 
+        auditClient.sendLog("deal-payment-service", ownerId, "owner",
+                "CONFIRM_DEAL", "DEAL", dealId, null);
+
         return dealResponseBuilder.buildDealResponse(deal);
     }
 
@@ -120,6 +125,10 @@ public class DealStatusServiceImpl implements DealStatusService {
                 DealChangeSource.USER,
                 request.getReason()
         );
+
+        auditClient.sendLog("deal-payment-service", ownerId, "owner",
+                "REJECT_DEAL", "DEAL", dealId,
+                "{\"reason\": \"" + request.getReason() + "\"}");
 
         return dealResponseBuilder.buildDealResponse(savedDeal);
     }
@@ -163,6 +172,10 @@ public class DealStatusServiceImpl implements DealStatusService {
                 DealChangeSource.USER,
                 request.getReason()
         );
+
+        auditClient.sendLog("deal-payment-service", currentUserId, "user",
+                "CANCEL_DEAL", "DEAL", dealId,
+                "{\"reason\": \"" + request.getReason() + "\"}");
 
         return dealResponseBuilder.buildDealResponse(savedDeal);
     }

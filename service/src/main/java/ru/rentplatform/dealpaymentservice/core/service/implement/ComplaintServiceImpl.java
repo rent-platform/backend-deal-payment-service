@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.rentplatform.dealpaymentservice.api.dto.request.CreateComplaintRequest;
 import ru.rentplatform.dealpaymentservice.api.dto.response.ComplaintResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.DealNotFoundException;
+import ru.rentplatform.dealpaymentservice.client.audit.AuditClient;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.ComplaintRepository;
 import ru.rentplatform.dealpaymentservice.core.dao.repository.DealReviewRepository;
@@ -22,8 +23,8 @@ import java.util.UUID;
 public class ComplaintServiceImpl implements ComplaintService {
 
     private final ComplaintRepository complaintRepository;
-
     private final DealReviewRepository dealReviewRepository;
+    private final AuditClient auditClient;
 
     @Override
     @Transactional
@@ -46,6 +47,10 @@ public class ComplaintServiceImpl implements ComplaintService {
                 .build();
 
         Complaint saved = complaintRepository.save(complaint);
+
+        auditClient.sendLog("deal-payment-service", authorId, "user",
+                "CREATE_COMPLAINT", "COMPLAINT", saved.getId(),
+                "{\"reason\": \"" + request.getReason() + "\"}");
 
         return toResponse(saved);
     }
@@ -84,6 +89,10 @@ public class ComplaintServiceImpl implements ComplaintService {
         }
 
         complaintRepository.save(complaint);
+
+        auditClient.sendLog("deal-payment-service", moderatorId, "moderator",
+                "RESOLVE_COMPLAINT", "COMPLAINT", complaintId,
+                "{\"status\": \"" + status + "\"}");
 
         return toResponse(complaint);
     }

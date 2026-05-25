@@ -9,6 +9,7 @@ import ru.rentplatform.dealpaymentservice.api.dto.response.DealResponse;
 import ru.rentplatform.dealpaymentservice.api.dto.response.PaymentConfirmationResponse;
 import ru.rentplatform.dealpaymentservice.api.exception.*;
 import ru.rentplatform.dealpaymentservice.client.YooKassaClient;
+import ru.rentplatform.dealpaymentservice.client.audit.AuditClient;
 import ru.rentplatform.dealpaymentservice.client.yookassa.dto.*;
 import ru.rentplatform.dealpaymentservice.config.YooKassaProperties;
 import ru.rentplatform.dealpaymentservice.core.dao.entity.*;
@@ -34,6 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final YooKassaClient yooKassaClient;
     private final YooKassaProperties properties;
     private final DealResponseBuilder dealResponseBuilder;
+    private final AuditClient auditClient;
 
     @Override
     @Transactional
@@ -199,6 +201,10 @@ public class PaymentServiceImpl implements PaymentService {
         );
 
         log.info("Payment {} received for deal {}. Status changed to PAID", yookassaPaymentId, deal.getId());
+
+        auditClient.sendLog("deal-payment-service", deal.getRenterId(), "renter",
+                "PAYMENT_SUCCESS", "DEAL", deal.getId(), null);
+
         return dealResponseBuilder.buildDealResponse(deal);
     }
 
@@ -247,6 +253,9 @@ public class PaymentServiceImpl implements PaymentService {
         } else {
             log.info("Deal {} start confirmed by user {} (1/2)", dealId, userId);
         }
+
+        auditClient.sendLog("deal-payment-service", userId, "user",
+                "START_DEAL", "DEAL", dealId, null);
 
         return dealResponseBuilder.buildDealResponse(deal);
     }
@@ -299,6 +308,10 @@ public class PaymentServiceImpl implements PaymentService {
         } else {
             log.info("Deal {} completion confirmed by user {} (1/2)", dealId, userId);
         }
+
+        auditClient.sendLog("deal-payment-service", userId, "user",
+                "COMPLETE_DEAL", "DEAL", dealId,
+                "{\"itemOk\": " + itemOk + "}");
 
         return dealResponseBuilder.buildDealResponse(deal);
     }
