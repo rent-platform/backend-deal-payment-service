@@ -203,7 +203,7 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("Payment {} received for deal {}. Status changed to PAID", yookassaPaymentId, deal.getId());
 
         auditClient.sendLog("deal-payment-service", deal.getRenterId(), "renter",
-                "PAYMENT_SUCCESS", "DEAL", deal.getId(), null);
+                "PAYMENT_SUCCESS", "DEAL", deal.getId().toString(), null);
 
         return dealResponseBuilder.buildDealResponse(deal);
     }
@@ -255,7 +255,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         auditClient.sendLog("deal-payment-service", userId, "user",
-                "START_DEAL", "DEAL", dealId, null);
+                "START_DEAL", "DEAL", dealId.toString(), null);
 
         return dealResponseBuilder.buildDealResponse(deal);
     }
@@ -310,7 +310,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         auditClient.sendLog("deal-payment-service", userId, "user",
-                "COMPLETE_DEAL", "DEAL", dealId,
+                "COMPLETE_DEAL", "DEAL", dealId.toString(),
                 "{\"itemOk\": " + itemOk + "}");
 
         return dealResponseBuilder.buildDealResponse(deal);

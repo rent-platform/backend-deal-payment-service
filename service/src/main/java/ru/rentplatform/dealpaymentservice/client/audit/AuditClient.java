@@ -16,7 +16,7 @@ public class AuditClient {
     private final RestClient auditServiceRestClient;
 
     public void sendLog(String service, UUID userId, String nickname, String action,
-                        String targetType, UUID targetId, String details) {
+                        String targetType, String targetId, String details) {
         try {
             auditServiceRestClient.post()
                     .uri("/api/internal/audit")

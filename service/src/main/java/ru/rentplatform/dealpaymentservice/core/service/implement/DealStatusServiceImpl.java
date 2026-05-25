@@ -91,7 +91,7 @@ public class DealStatusServiceImpl implements DealStatusService {
                 dealId, ownerId, conflictingDeals.size());
 
         auditClient.sendLog("deal-payment-service", ownerId, "owner",
-                "CONFIRM_DEAL", "DEAL", dealId, null);
+                "CONFIRM_DEAL", "DEAL", dealId.toString(), null);
 
         return dealResponseBuilder.buildDealResponse(deal);
     }
@@ -127,7 +127,7 @@ public class DealStatusServiceImpl implements DealStatusService {
         );
 
         auditClient.sendLog("deal-payment-service", ownerId, "owner",
-                "REJECT_DEAL", "DEAL", dealId,
+                "REJECT_DEAL", "DEAL", dealId.toString(),
                 "{\"reason\": \"" + request.getReason() + "\"}");
 
         return dealResponseBuilder.buildDealResponse(savedDeal);
@@ -174,7 +174,7 @@ public class DealStatusServiceImpl implements DealStatusService {
         );
 
         auditClient.sendLog("deal-payment-service", currentUserId, "user",
-                "CANCEL_DEAL", "DEAL", dealId,
+                "CANCEL_DEAL", "DEAL", dealId.toString(),
                 "{\"reason\": \"" + request.getReason() + "\"}");
 
         return dealResponseBuilder.buildDealResponse(savedDeal);

@@ -136,7 +136,7 @@ public class DealServiceImpl implements DealService {
         );
 
         auditClient.sendLog("deal-payment-service", renterId, "renter",
-                "CREATE_DEAL", "DEAL", savedDeal.getId(), null);
+                "CREATE_DEAL", "DEAL", savedDeal.getId().toString(), null);
 
         return dealResponseBuilder.buildDealResponse(savedDeal);
     }

@@ -49,7 +49,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         Complaint saved = complaintRepository.save(complaint);
 
         auditClient.sendLog("deal-payment-service", authorId, "user",
-                "CREATE_COMPLAINT", "COMPLAINT", saved.getId(),
+                "CREATE_COMPLAINT", "COMPLAINT", saved.getId().toString(),
                 "{\"reason\": \"" + request.getReason() + "\"}");
 
         return toResponse(saved);
@@ -91,7 +91,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         complaintRepository.save(complaint);
 
         auditClient.sendLog("deal-payment-service", moderatorId, "moderator",
-                "RESOLVE_COMPLAINT", "COMPLAINT", complaintId,
+                "RESOLVE_COMPLAINT", "COMPLAINT", complaintId.toString(),
                 "{\"status\": \"" + status + "\"}");
 
         return toResponse(complaint);
